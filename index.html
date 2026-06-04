@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вибродиагностика</title>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: #f0f2f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0077FF;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #0077FF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0066DD;
+        }
+        #plot {
+            margin-top: 20px;
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #0077FF;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Вибродиагностика</h1>
+        
+        <div class="form-group">
+            <label for="bearing">Подшипник:</label>
+            <select id="bearing">
+                <option value="6205">6205 - Радиальный шариковый</option>
+                <option value="6208">6208 - Радиальный шариковый</option>
+                <option value="6305">6305 - Радиальный шариковый</option>
+                <option value="6308" selected>6308 - Радиальный шариковый</option>
+                <option value="6310">6310 - Радиальный шариковый</option>
+                <option value="6312">6312 - Радиальный шариковый</option>
+                <option value="22210">22210 - Сферический роликовый</option>
+                <option value="22220">22220 - Сферический роликовый</option>
+                <option value="30210">30210 - Конический роликовый</option>
+                <option value="7014">7014 - Угловой контактный</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="rpm">Обороты (об/мин):</label>
+            <input type="number" id="rpm" value="1500" min="300" max="3600" step="50">
+        </div>
+        
+        <div class="form-group">
+            <label for="defect">Тип дефекта:</label>
+            <select id="defect">
+                <option value="none">Без дефекта</option>
+                <option value="BPFO" selected>BPFO - Наружное кольцо</option>
+                <option value="BPFI">BPFI - Внутреннее кольцо</option>
+                <option value="BSF">BSF - Тело качения</option>
+                <option value="FTF">FTF - Сепаратор</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="stage">Стадия дефекта (1-4):</label>
+            <input type="range" id="stage" min="1" max="4" value="2" step="1">
+            <span id="stageValue">2</span>
+        </div>
+        
+        <button onclick="generateSpectrum()">📊 Построить спектр</button>
+        <button onclick="randomExam()" style="background: #4CAF50; margin-top: 10px;">🎲 Случайный экзамен</button>
+        
+        <div id="plot"></div>
+        
+        <div class="info" id="info">
+            <h3>📊 Расчетные частоты:</h3>
+            <div id="freqInfo">Нажмите "Построить спектр"</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
