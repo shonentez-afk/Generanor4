@@ -2,35 +2,39 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Вибродиагностика</title>
+    <!-- VK Bridge -->
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
+        * { box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif; 
             margin: 0; 
             padding: 10px; 
-            background: #f0f2f5; 
+            background: #f0f2f5;
+            -webkit-tap-highlight-color: transparent;
         }
         .container { 
             max-width: 600px; 
             margin: 0 auto; 
             background: white; 
             border-radius: 10px; 
-            padding: 20px; 
+            padding: 15px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
         }
-        h1 { color: #0077FF; font-size: 24px; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        h1 { color: #0077FF; font-size: 20px; margin: 0 0 15px 0; text-align: center; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 14px; }
         select, input { 
             width: 100%; 
             padding: 10px; 
             border: 1px solid #ddd; 
             border-radius: 5px; 
             font-size: 16px; 
-            box-sizing: border-box; 
+            background: white;
         }
         button { 
             width: 100%; 
@@ -42,21 +46,33 @@
             font-size: 16px; 
             font-weight: 600; 
             cursor: pointer; 
-            margin-top: 10px; 
+            margin-top: 10px;
+            -webkit-appearance: none;
         }
-        button:hover { background: #0066DD; }
-        #plot { margin-top: 20px; }
+        button:active { background: #0066DD; transform: scale(0.98); }
+        #plot { margin-top: 20px; width: 100%; }
         .info { 
             background: #f8f9fa; 
-            padding: 15px; 
+            padding: 12px; 
             border-radius: 5px; 
-            margin-top: 15px; 
+            margin-top: 15px;
+            font-size: 13px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔧 Вибродиагностика</h1>
+        
+        <div id="errorBox" class="error"></div>
         
         <div class="form-group">
             <label>Подшипник:</label>
@@ -90,7 +106,7 @@
         </div>
         
         <button onclick="generateSpectrum()">📊 Построить спектр</button>
-        <button onclick="randomExam()" style="background: #4CAF50; margin-top: 10px;">🎲 Случайный экзамен</button>
+        <button onclick="randomExam()" style="background: #4CAF50;">🎲 Случайный экзамен</button>
         
         <div id="plot"></div>
         <div class="info" id="info">Нажмите "Построить спектр"</div>
@@ -98,7 +114,7 @@
 
     <script>
         // ==========================================
-        // 1. СНАЧАЛА ОБЪЯВЛЯЕМ ДАННЫЕ
+        // ДАННЫЕ
         // ==========================================
         const BEARINGS_DB = {
             '6205':  { n: 9,  d: 7.94,  D: 38.5,  alpha: 0 },
@@ -114,24 +130,55 @@
         };
 
         // ==========================================
-        // 2. ИНИЦИАЛИЗАЦИЯ VK (БЕЗОПАСНАЯ)
+        // ИНИЦИАЛИЗАЦИЯ VK BRIDGE
         // ==========================================
-        if (typeof VKBridge !== 'undefined') {
+        let vkInitialized = false;
+        
+        function initVK() {
+            if (typeof VKBridge === 'undefined') {
+                console.log('❌ VKBridge не загружен');
+                showError('VK Bridge не загружен. Перезагрузите страницу.');
+                return;
+            }
+            
+            console.log('🔄 Инициализация VK Bridge...');
+            
             VKBridge.send('VKWebAppInit')
-                .then(() => console.log('✅ VK Bridge инициализирован'))
-                .catch(err => console.error('❌ Ошибка VK Bridge:', err));
-        } else {
-            console.log('ℹ️ VK Bridge не загружен (работаем вне VK)');
+                .then((data) => {
+                    console.log('✅ VK Bridge инициализирован:', data);
+                    vkInitialized = true;
+                    
+                    // Сообщаем VK что приложение готово
+                    VKBridge.send('VKWebAppSetViewSettings', {
+                        status_bar_style: 'light',
+                        action_bar_color: '#0077FF'
+                    });
+                })
+                .catch((error) => {
+                    console.error('❌ Ошибка инициализации VK:', error);
+                    // Не показываем ошибку - может работать и без VK
+                });
+        }
+
+        function showError(message) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+            setTimeout(() => {
+                errorBox.style.display = 'none';
+            }, 5000);
         }
 
         // ==========================================
-        // 3. ФУНКЦИИ (после данных)
+        // ФУНКЦИИ
         // ==========================================
         
         function calculateFrequencies(bearingName, rpm) {
             const b = BEARINGS_DB[bearingName];
+            
             if (!b) {
                 console.error('Подшипник не найден:', bearingName);
+                console.log('Доступные:', Object.keys(BEARINGS_DB));
                 return null;
             }
             
@@ -156,42 +203,38 @@
                 const defect = document.getElementById('defect').value;
                 const stage = parseInt(document.getElementById('stage').value);
                 
-                console.log('Генерация спектра:', bearing, rpm, defect, stage);
+                console.log('Генерация:', bearing, rpm, defect, stage);
                 
                 const freqs = calculateFrequencies(bearing, rpm);
                 if (!freqs) {
-                    alert('Ошибка: не удалось рассчитать частоты');
+                    showError('Подшипник не найден в базе!');
                     return;
                 }
                 
-                // Отображение информации
                 document.getElementById('info').innerHTML = `
-                    <strong>📊 Расчетные частоты для ${bearing}:</strong><br>
-                    BPFO (наружное кольцо): ${freqs.BPFO.toFixed(2)} Гц<br>
-                    BPFI (внутреннее кольцо): ${freqs.BPFI.toFixed(2)} Гц<br>
-                    BSF (тело качения): ${freqs.BSF.toFixed(2)} Гц<br>
-                    FTF (сепаратор): ${freqs.FTF.toFixed(2)} Гц<br>
-                    2×BSF (дефект тела): ${freqs['2xBSF'].toFixed(2)} Гц<br>
-                    <strong>Обороты вала:</strong> ${freqs.fr.toFixed(2)} Гц (${rpm} об/мин)<br>
-                    <strong>Тип дефекта:</strong> ${defect}, Стадия: ${stage}
+                    <strong>📊 ${bearing}:</strong><br>
+                    BPFO: ${freqs.BPFO.toFixed(2)} Гц | 
+                    BPFI: ${freqs.BPFI.toFixed(2)} Гц | 
+                    BSF: ${freqs.BSF.toFixed(2)} Гц<br>
+                    FTF: ${freqs.FTF.toFixed(2)} Гц | 
+                    2×BSF: ${freqs['2xBSF'].toFixed(2)} Гц<br>
+                    <strong>Обороты:</strong> ${freqs.fr.toFixed(2)} Гц (${rpm} об/мин)
                 `;
                 
-                // Генерация тестового графика (упрощенно)
+                // Генерация графика
                 const xValues = [];
                 const yValues = [];
                 
-                for (let i = 0; i <= 500; i += 10) {
+                for (let i = 0; i <= 500; i += 5) {
                     xValues.push(i);
-                    // Имитация пиков на дефектных частотах
-                    let amplitude = 0.1 + Math.random() * 0.1;
+                    let amplitude = 0.05 + Math.random() * 0.05;
                     
-                    // Добавляем пики на частотах дефектов
                     const defectFreq = freqs[defect] || freqs.BPFO;
                     for (let h = 1; h <= stage; h++) {
                         const harmonicFreq = defectFreq * h;
                         const distance = Math.abs(i - harmonicFreq);
-                        if (distance < 20) {
-                            amplitude += (1 - distance/20) * (stage * 0.3);
+                        if (distance < 15) {
+                            amplitude += (1 - distance/15) * (stage * 0.4);
                         }
                     }
                     
@@ -207,58 +250,80 @@
                 };
                 
                 const layout = {
-                    title: `Спектр огибающей: ${bearing}, ${defect}, стадия ${stage}`,
+                    title: {
+                        text: `Спектр: ${bearing}, ${defect}`,
+                        font: { size: 14 }
+                    },
                     xaxis: { title: 'Частота, Гц', range: [0, 500] },
                     yaxis: { title: 'Амплитуда, g' },
-                    margin: { t: 50, b: 50, l: 50, r: 20 }
+                    margin: { t: 40, b: 40, l: 40, r: 20 },
+                    autosize: true
                 };
                 
-                Plotly.newPlot('plot', [trace], layout);
-                console.log('✅ Спектр построен успешно');
+                const config = { responsive: true, displayModeBar: false };
+                
+                Plotly.newPlot('plot', [trace], layout, config);
+                
+                // Haptic feedback в VK
+                if (vkInitialized && typeof VKBridge !== 'undefined') {
+                    VKBridge.send('VKWebAppTinkoffBellNotification', {});
+                }
                 
             } catch (error) {
-                console.error('❌ Ошибка при генерации спектра:', error);
-                alert('Ошибка: ' + error.message);
+                console.error('Ошибка:', error);
+                showError('Ошибка: ' + error.message);
             }
         }
 
         function randomExam() {
-            try {
-                const bearings = Object.keys(BEARINGS_DB);
-                const bearing = bearings[Math.floor(Math.random() * bearings.length)];
-                const rpms = [750, 1000, 1500, 2000, 3000];
-                const rpm = rpms[Math.floor(Math.random() * rpms.length)];
-                const defects = ['BPFO', 'BPFI', 'BSF', 'FTF'];
-                const defect = defects[Math.floor(Math.random() * defects.length)];
-                const stage = Math.floor(Math.random() * 4) + 1;
-                
-                document.getElementById('bearing').value = bearing;
-                document.getElementById('rpm').value = rpm;
-                document.getElementById('defect').value = defect;
-                document.getElementById('stage').value = stage;
-                document.getElementById('stageValue').textContent = stage;
-                
-                const freqs = calculateFrequencies(bearing, rpm);
-                
-                alert(`🎲 ЭКЗАМЕН:\n\nПодшипник: ${bearing}\nОбороты: ${rpm} об/мин\nСтадия: ${stage}\n\nПостройте спектр и определите дефект!\n\n(Правильный ответ: ${defect} = ${freqs[defect].toFixed(2)} Гц)`);
-                
-                generateSpectrum();
-                
-            } catch (error) {
-                console.error('❌ Ошибка экзамена:', error);
-                alert('Ошибка: ' + error.message);
-            }
+            const bearings = Object.keys(BEARINGS_DB);
+            const bearing = bearings[Math.floor(Math.random() * bearings.length)];
+            const rpms = [750, 1000, 1500, 2000, 3000];
+            const rpm = rpms[Math.floor(Math.random() * rpms.length)];
+            const defects = ['BPFO', 'BPFI', 'BSF', 'FTF'];
+            const defect = defects[Math.floor(Math.random() * defects.length)];
+            const stage = Math.floor(Math.random() * 4) + 1;
+            
+            document.getElementById('bearing').value = bearing;
+            document.getElementById('rpm').value = rpm;
+            document.getElementById('defect').value = defect;
+            document.getElementById('stage').value = stage;
+            document.getElementById('stageValue').textContent = stage;
+            
+            const freqs = calculateFrequencies(bearing, rpm);
+            
+            alert(`🎲 ЭКЗАМЕН:\n\nПодшипник: ${bearing}\nОбороты: ${rpm} об/мин\nСтадия: ${stage}\n\nОпределите дефект!\n\n(Ответ: ${defect} = ${freqs[defect].toFixed(2)} Гц)`);
+            
+            generateSpectrum();
         }
 
-        // Обновление отображения стадии
+        // Обновление стадии
         document.getElementById('stage').addEventListener('input', function(e) {
             document.getElementById('stageValue').textContent = e.target.value;
         });
 
-        // Автозапуск при загрузке страницы
+        // ==========================================
+        // ЗАПУСК
+        // ==========================================
+        
+        // Инициализация VK при загрузке
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initVK);
+        } else {
+            initVK();
+        }
+        
+        // Автозапуск графика
         window.addEventListener('load', function() {
-            console.log('✅ Страница загружена');
-            setTimeout(generateSpectrum, 500); // Небольшая задержка для загрузки Plotly
+            setTimeout(generateSpectrum, 1000);
+        });
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', function() {
+            const plotDiv = document.getElementById('plot');
+            if (plotDiv && plotDiv.data) {
+                Plotly.Plots.resize(plotDiv);
+            }
         });
     </script>
 </body>
