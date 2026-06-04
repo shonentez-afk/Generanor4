@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Вибродиагностика</title>
-    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif; margin: 0; padding: 10px; background: #f0f2f5; }
@@ -12,252 +11,182 @@
         h1 { color: #0077FF; font-size: 20px; text-align: center; margin: 0 0 14px 0; }
         .field { margin-bottom: 10px; }
         label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-        select, input { width: 100%; padding: 11px; border: 1px solid #e1e3e6; border-radius: 8px; font-size: 15px; background: #fff; color: #000; -webkit-appearance: none; appearance: none; }
+        select, input { width: 100%; padding: 11px; border: 1px solid #e1e3e6; border-radius: 8px; font-size: 15px; background: #fff; color: #000; -webkit-appearance: none; }
         .row { display: flex; gap: 8px; }
         .row > div { flex: 1; }
-        button { width: 100%; padding: 13px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; color: #fff; margin-top: 6px; cursor: pointer; transition: opacity 0.2s; }
+        button { width: 100%; padding: 13px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; color: #fff; margin-top: 6px; cursor: pointer; }
         button:active { opacity: 0.8; }
         .btn-primary { background: #0077FF; }
-        .btn-success { background: #4BB34B; }
         .btn-exam { background: #FF5722; }
-        #plot { width: 100%; height: 220px; margin-top: 12px; }
+        canvas { width: 100%; height: 200px; margin-top: 12px; background: #fafafa; border-radius: 8px; }
         .info { background: #f5f7fa; padding: 11px; border-radius: 8px; margin-top: 12px; font-size: 12px; line-height: 1.5; }
         .info b { color: #0077FF; }
-        .status { text-align: center; padding: 8px; background: #e8f5e9; color: #2e7d32; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <div class="status">✅ Готово к работе</div>
         <h1>🔧 Вибродиагностика</h1>
         
         <div class="field">
             <label>Подшипник</label>
             <select id="bearing">
-                <option value="6205">6205 - Радиальный шариковый</option>
-                <option value="6208">6208 - Радиальный шариковый</option>
-                <option value="6305">6305 - Радиальный шариковый</option>
-                <option value="6308" selected>6308 - Радиальный шариковый</option>
-                <option value="6310">6310 - Радиальный шариковый</option>
-                <option value="6312">6312 - Радиальный шариковый</option>
-                <option value="22210">22210 - Сферический роликовый</option>
-                <option value="22220">22220 - Сферический роликовый</option>
-                <option value="30210">30210 - Конический роликовый</option>
-                <option value="7014">7014 - Угловой контактный</option>
+                <option value="6308" selected>6308</option>
+                <option value="6310">6310</option>
+                <option value="6205">6205</option>
+                <option value="22220">22220</option>
+                <option value="30210">30210</option>
             </select>
         </div>
         
         <div class="row">
             <div class="field">
-                <label>Обороты, об/мин</label>
+                <label>Обороты</label>
                 <select id="rpm">
-                    <option value="750">750</option>
-                    <option value="1000">1000</option>
                     <option value="1500" selected>1500</option>
-                    <option value="2000">2000</option>
                     <option value="3000">3000</option>
                 </select>
             </div>
             <div class="field">
-                <label>fc, Гц</label>
+                <label>fc</label>
                 <select id="fc">
-                    <option value="800">800</option>
-                    <option value="1600">1600</option>
                     <option value="2500" selected>2500</option>
-                    <option value="4000">4000</option>
-                    <option value="5000">5000</option>
-                    <option value="6300">6300</option>
+                    <option value="1600">1600</option>
                 </select>
             </div>
         </div>
         
         <div class="row">
             <div class="field">
-                <label>Тип дефекта</label>
+                <label>Дефект</label>
                 <select id="defect">
-                    <option value="BPFO" selected>BPFO (Наружное)</option>
-                    <option value="BPFI">BPFI (Внутреннее)</option>
-                    <option value="BSF">BSF (Тело качения)</option>
-                    <option value="FTF">FTF (Сепаратор)</option>
+                    <option value="BPFO" selected>BPFO</option>
+                    <option value="BPFI">BPFI</option>
+                    <option value="BSF">BSF</option>
                 </select>
             </div>
             <div class="field">
                 <label>Стадия</label>
                 <select id="stage">
-                    <option value="1">1 - Начальная</option>
-                    <option value="2" selected>2 - Ранняя</option>
-                    <option value="3">3 - Развитая</option>
-                    <option value="4">4 - Критическая</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
                 </select>
             </div>
         </div>
         
-        <button class="btn-primary" id="btn-spectrum">📊 Построить спектр</button>
-        <button class="btn-exam" id="btn-exam">🎲 Случайный экзамен</button>
+        <button class="btn-primary" onclick="draw()">📊 Построить</button>
+        <button class="btn-exam" onclick="exam()">🎲 Экзамен</button>
         
-        <div id="plot"></div>
-        <div class="info" id="info">Нажмите "Построить спектр"</div>
+        <canvas id="canvas"></canvas>
+        <div class="info" id="info">Нажмите "Построить"</div>
     </div>
 
     <script>
-        // База данных подшипников
         const DB = {
-            '6205':  { n: 9,  d: 7.94,  D: 38.5,  a: 0 },
-            '6208':  { n: 9,  d: 12.70, D: 57.0,  a: 0 },
-            '6305':  { n: 8,  d: 11.00, D: 43.0,  a: 0 },
-            '6308':  { n: 8,  d: 15.08, D: 65.0,  a: 0 },
-            '6310':  { n: 8,  d: 18.00, D: 80.0,  a: 0 },
-            '6312':  { n: 8,  d: 22.00, D: 95.0,  a: 0 },
-            '22210': { n: 28, d: 16.0,  D: 68.0,  a: 0 },
-            '22220': { n: 28, d: 32.0,  D: 138.0, a: 0 },
-            '30210': { n: 18, d: 17.0,  D: 68.0,  a: 15 },
-            '7014':  { n: 20, d: 11.0,  D: 90.0,  a: 15 }
+            '6205': {n:9, d:7.94, D:38.5, a:0},
+            '6308': {n:8, d:15.08, D:65.0, a:0},
+            '6310': {n:8, d:18.00, D:80.0, a:0},
+            '22220': {n:28, d:32.0, D:138.0, a:0},
+            '30210': {n:18, d:17.0, D:68.0, a:15}
         };
 
-        // Расчет частот
-        function getFreqs(key, rpm) {
-            const b = DB[key];
-            if (!b) return null;
-            const fr = rpm / 60.0;
-            const k = b.d / b.D;
-            const c = Math.cos(b.a * Math.PI / 180);
-            const bpfo = (b.n / 2) * fr * (1 - k * c);
-            const bpfi = (b.n / 2) * fr * (1 + k * c);
-            const bsf = (b.D / (2 * b.d)) * fr * (1 - Math.pow(k * c, 2));
-            const ftf = (fr / 2) * (1 - k * c);
-            return { fr, BPFO: bpfo, BPFI: bpfi, BSF: bsf, FTF: ftf, '2xBSF': 2 * bsf };
+        function calc(b, rpm) {
+            const fr = rpm/60;
+            const k = b.d/b.D;
+            const c = Math.cos(b.a*Math.PI/180);
+            return {
+                fr: fr,
+                BPFO: (b.n/2)*fr*(1-k*c),
+                BPFI: (b.n/2)*fr*(1+k*c),
+                BSF: (b.D/(2*b.d))*fr*(1-(k*c)**2),
+                FTF: (fr/2)*(1-k*c)
+            };
         }
 
-        // Построение спектра
         function draw() {
             const bearing = document.getElementById('bearing').value;
             const rpm = parseInt(document.getElementById('rpm').value);
             const fc = parseInt(document.getElementById('fc').value);
             const defect = document.getElementById('defect').value;
             const stage = parseInt(document.getElementById('stage').value);
-
-            const f = getFreqs(bearing, rpm);
-            if (!f) {
-                alert('Ошибка: подшипник не найден');
-                return;
-            }
-
-            const target = f[defect] || f.BPFO;
-            const x = [], y = [];
             
+            const f = calc(DB[bearing], rpm);
+            const target = f[defect];
+            
+            // Рисуем на Canvas
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.offsetWidth;
+            const h = canvas.height = canvas.offsetHeight;
+            
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Генерация данных
+            const data = [];
             for (let i = 0; i <= 500; i += 5) {
-                x.push(i);
-                let v = 0.05 + Math.random() * 0.05;
-                
-                // Основная частота и гармоники
-                for (let h = 1; h <= stage; h++) {
-                    const harmonic = target * h;
-                    const dist = Math.abs(i - harmonic);
-                    if (dist < 15) {
-                        v += (1 - dist / 15) * (stage * 0.4);
-                    }
+                let v = 0.1 + Math.random()*0.05;
+                for (let h_idx = 1; h_idx <= stage; h_idx++) {
+                    if (Math.abs(i - target*h_idx) < 15) v += (1-Math.abs(i-target*h_idx)/15)*stage*0.3;
                 }
-                
-                // Боковые полосы (для BPFI и BSF)
-                if (defect === 'BPFI') {
-                    const mod = f.fr;
-                    for (let h = 1; h <= Math.min(stage, 3); h++) {
-                        const sb1 = target + h * mod;
-                        const sb2 = target - h * mod;
-                        if (Math.abs(i - sb1) < 8) v += 0.25 * (1 - Math.abs(i - sb1) / 8);
-                        if (Math.abs(i - sb2) < 8) v += 0.25 * (1 - Math.abs(i - sb2) / 8);
-                    }
-                } else if (defect === 'BSF') {
-                    const mod = 2 * f.FTF;
-                    for (let h = 1; h <= Math.min(stage, 3); h++) {
-                        const sb1 = target + h * mod;
-                        const sb2 = target - h * mod;
-                        if (Math.abs(i - sb1) < 8) v += 0.2 * (1 - Math.abs(i - sb1) / 8);
-                        if (Math.abs(i - sb2) < 8) v += 0.2 * (1 - Math.abs(i - sb2) / 8);
-                    }
-                }
-                
-                y.push(v);
+                data.push({x: i, y: v});
             }
-
-            const data = [{
-                x: x, y: y,
-                type: 'scatter',
-                mode: 'lines',
-                line: { color: '#0077FF', width: 2 }
-            }];
             
-            const layout = {
-                title: { text: bearing + ' | fc=' + fc + ' Гц | ' + defect + ' | ст.' + stage, font: { size: 13 } },
-                xaxis: { title: 'Частота, Гц', range: [0, 500], tickfont: { size: 10 } },
-                yaxis: { title: 'Амплитуда, g', tickfont: { size: 10 } },
-                margin: { t: 35, b: 35, l: 40, r: 10 },
-                autosize: true
-            };
+            // Масштабирование
+            const maxVal = Math.max(...data.map(d => d.y));
+            const xStep = (w - 50) / 500;
+            const yScale = (h - 30) / maxVal;
             
-            if (window.Plotly) {
-                Plotly.newPlot('plot', data, layout, { responsive: true, displayModeBar: false });
-            }
-
+            // Рисуем график
+            ctx.strokeStyle = '#0077FF';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            data.forEach((d, i) => {
+                const x = 40 + d.x * xStep;
+                const y = h - 20 - d.y * yScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            
+            // Оси
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 10);
+            ctx.lineTo(40, h-20);
+            ctx.lineTo(w-10, h-20);
+            ctx.stroke();
+            
+            // Подписи
+            ctx.fillStyle = '#666';
+            ctx.font = '11px sans-serif';
+            ctx.fillText('0', 35, h-10);
+            ctx.fillText('500', w-30, h-10);
+            ctx.fillText('Гц', w-15, h-5);
+            ctx.fillText('g', 10, 15);
+            
+            // Информация
             document.getElementById('info').innerHTML = 
-                '<b>' + bearing + '</b> @ ' + rpm + ' об/мин, fc=' + fc + ' Гц<br>' +
-                'BPFO: ' + f.BPFO.toFixed(2) + ' Гц | ' +
-                'BPFI: ' + f.BPFI.toFixed(2) + ' Гц<br>' +
-                'BSF: ' + f.BSF.toFixed(2) + ' Гц | ' +
-                'FTF: ' + f.FTF.toFixed(2) + ' Гц | ' +
-                '<b>2×BSF: ' + f['2xBSF'].toFixed(2) + ' Гц</b><br>' +
-                '<b>Дефект:</b> ' + defect + ', <b>Стадия:</b> ' + stage;
+                '<b>'+bearing+'</b> @ '+rpm+' об/мин<br>' +
+                'BPFO: '+f.BPFO.toFixed(1)+' Гц | ' +
+                'BPFI: '+f.BPFI.toFixed(1)+' Гц<br>' +
+                'BSF: '+f.BSF.toFixed(1)+' Гц | ' +
+                'FTF: '+f.FTF.toFixed(1)+' Гц';
         }
 
-        // Экзамен
         function exam() {
-            const bearings = Object.keys(DB);
-            const rpms = [750, 1000, 1500, 2000, 3000];
-            const defects = ['BPFO', 'BPFI', 'BSF', 'FTF'];
-            const stages = [1, 2, 3, 4];
-            
-            const b = bearings[Math.floor(Math.random() * bearings.length)];
-            const r = rpms[Math.floor(Math.random() * rpms.length)];
-            const d = defects[Math.floor(Math.random() * defects.length)];
-            const s = stages[Math.floor(Math.random() * stages.length)];
-            const f = getFreqs(b, r);
-            
+            const b = Object.keys(DB)[Math.floor(Math.random()*5)];
+            const r = [1500,3000][Math.floor(Math.random()*2)];
+            const d = ['BPFO','BPFI','BSF'][Math.floor(Math.random()*3)];
+            const f = calc(DB[b], r);
             document.getElementById('bearing').value = b;
             document.getElementById('rpm').value = r;
             document.getElementById('defect').value = d;
-            document.getElementById('stage').value = s;
-            
-            // Используем confirm вместо alert, чтобы пользователь сначала подумал
-            const userAnswer = prompt(
-                '🎲 ЭКЗАМЕН:\n\n' +
-                'Подшипник: ' + b + '\n' +
-                'Обороты: ' + r + ' об/мин\n' +
-                'Стадия: ' + s + '\n\n' +
-                'Какой тип дефекта?\n' +
-                '(BPFO, BPFI, BSF или FTF)',
-                ''
-            );
-            
-            if (userAnswer !== null) {
-                const correct = userAnswer.toUpperCase().trim();
-                if (correct === d) {
-                    alert('✅ ПРАВИЛЬНО! Ответ: ' + d + ' = ' + f[d].toFixed(2) + ' Гц');
-                } else {
-                    alert('❌ Неправильно.\n\nВаш ответ: ' + correct + '\nПравильный: ' + d + ' = ' + f[d].toFixed(2) + ' Гц');
-                }
-            }
-            
+            alert('ЭКЗАМЕН: '+b+', '+r+' об/мин\n\nОтвет: '+d+' = '+f[d].toFixed(1)+' Гц');
             draw();
         }
 
-        // Навешиваем обработчики
-        document.getElementById('btn-spectrum').addEventListener('click', draw);
-        document.getElementById('btn-exam').addEventListener('click', exam);
-
-        // Автозапуск
-        window.addEventListener('load', function() {
-            setTimeout(draw, 300);
-        });
+        window.onload = () => setTimeout(draw, 300);
     </script>
 </body>
 </html>
